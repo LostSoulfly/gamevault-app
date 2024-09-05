@@ -243,7 +243,10 @@ namespace gamevault.Helper
                     }
                     licenseData[0].UserName = username;
                     SettingsViewModel.Instance.License = licenseData[0];
-                    Preferences.Set(AppConfigKey.Phalcode2, JsonSerializer.Serialize(SettingsViewModel.Instance.License), AppFilePath.UserFile, true);               
+                    Preferences.Set(AppConfigKey.Phalcode2, JsonSerializer.Serialize(SettingsViewModel.Instance.License), AppFilePath.UserFile, true);
+                    
+                    //Cache license locally
+                    File.WriteAllText("license.txt", JsonSerializer.Serialize<PhalcodeProduct>(SettingsViewModel.Instance.License, new JsonSerializerOptions { WriteIndented = true }));
                 }
             }
             catch (Exception ex)
