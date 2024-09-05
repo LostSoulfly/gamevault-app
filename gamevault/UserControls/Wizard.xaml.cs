@@ -81,8 +81,13 @@ namespace gamevault.UserControls
 
         private async void Finish_Clicked(object sender, RoutedEventArgs e)
         {
-                MainWindowViewModel.Instance.SetActiveControl(null);
-                MainWindowViewModel.Instance.SetActiveControl(MainControl.Library);
+
+            MainWindowViewModel.Instance.SetActiveControl(null);
+            MainWindowViewModel.Instance.SetActiveControl(MainControl.Library);
+
+            await MainWindowViewModel.Instance.Library.GetGameInstalls().RestoreInstalledGames();
+            await MainWindowViewModel.Instance.Downloads.RestoreDownloadedGames();
+
         }
     }
 }
