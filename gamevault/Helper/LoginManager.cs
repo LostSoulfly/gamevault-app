@@ -140,6 +140,10 @@ namespace gamevault.Helper
         private WpfEmbeddedBrowser wpfEmbeddedBrowser = null;
         public async Task PhalcodeLogin(bool startHidden = false)
         {
+
+            if (CheckCachedLicense() == true)
+                return;
+
             string? provider = Preferences.Get(AppConfigKey.Phalcode1, AppFilePath.UserFile, true);
             if (startHidden && provider == "")
             {
@@ -265,6 +269,30 @@ namespace gamevault.Helper
             catch { }
             return;
         }
+
+        private bool CheckCachedLicense()
+        {
+
+            try
+            {
+                string license = File.ReadAllText("license.txt");
+                SettingsViewModel.Instance.License = JsonSerializer.Deserialize<PhalcodeProduct>(license);
+
+                Preferences.Set(AppConfigKey.Phalcode2, JsonSerializer.Serialize(SettingsViewModel.Instance.License), AppFilePath.UserFile, true);
+                if (SettingsViewModel.Instance.License.IsActive())
+                    return true;
+            }
+            catch {
+
+                //SettingsViewModel.Instance.License = new PhalcodeProduct() { UserName = LoginManager.Instance.GetCurrentUser().Username, Status = "", CurrentPeriodStart = DateTime.Today - TimeSpan.FromDays(1), CurrentPeriodEnd = DateTime.Today - TimeSpan.FromDays(1), Currency = "USD" };
+
+                File.WriteAllText("license.txt", JsonSerializer.Serialize<PhalcodeProduct>(SettingsViewModel.Instance.License, new JsonSerializerOptions { WriteIndented = true }));
+
+            }
+
+            return false;
+        }
+
         public void PhalcodeLogout()
         {
             SettingsViewModel.Instance.License = new PhalcodeProduct();
