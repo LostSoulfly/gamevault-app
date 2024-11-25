@@ -184,7 +184,7 @@ namespace gamevault.Windows
                 {
                     return true;
                 }
-                string gameVaultNews = await WebHelper.DownloadFileContentAsync("https://gamevau.lt/news.md");
+                string gameVaultNews = await WebHelper.DownloadFileContentAsync("https://raw.githubusercontent.com/LostSoulfly/gamevault-app/refs/heads/master/README.md");
                 string serverNews = await WebHelper.GetRequestAsync($"{SettingsViewModel.Instance.ServerUrl}/api/config/news");
 
                 string hash = await CacheHelper.CreateHashAsync(gameVaultNews + serverNews);
