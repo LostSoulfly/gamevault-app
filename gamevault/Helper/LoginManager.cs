@@ -287,9 +287,8 @@ namespace gamevault.Helper
             }
             catch {
 
-                //SettingsViewModel.Instance.License = new PhalcodeProduct() { UserName = LoginManager.Instance.GetCurrentUser().Username, Status = "", CurrentPeriodStart = DateTime.Today - TimeSpan.FromDays(1), CurrentPeriodEnd = DateTime.Today - TimeSpan.FromDays(1), Currency = "USD" };
-
-                File.WriteAllText("license.txt", JsonSerializer.Serialize<PhalcodeProduct>(SettingsViewModel.Instance.License, new JsonSerializerOptions { WriteIndented = true }));
+                //SettingsViewModel.Instance.License = new PhalcodeProduct() { UserName = "user", Status = "", CurrentPeriodStart = DateTime.Today - TimeSpan.FromDays(1), CurrentPeriodEnd = DateTime.MaxValue, Currency = "USD" };
+                //File.WriteAllText("license.txt", JsonSerializer.Serialize<PhalcodeProduct>(SettingsViewModel.Instance.License, new JsonSerializerOptions { WriteIndented = true }));
 
             }
 
