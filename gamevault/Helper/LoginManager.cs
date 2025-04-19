@@ -80,8 +80,9 @@ namespace gamevault.Helper
             LoginState state = LoginState.Success;
             if (IsLoggedIn()) return;
 
-            if (Preferences.Get(AppConfigKey.Username, AppFilePath.UserFile).IsNullOrEmpty() && !SettingsViewModel.Instance.ServerUrl.IsNullOrEmpty())
+            if (String.IsNullOrEmpty(Preferences.Get(AppConfigKey.Username, AppFilePath.UserFile)) && !String.IsNullOrEmpty(SettingsViewModel.Instance.ServerUrl))
             {
+                string t = null;
                 m_LoginState = LoginState.Unauthorized;
                 return;
             }
@@ -290,7 +291,7 @@ namespace gamevault.Helper
             }
             catch {
 
-                //SettingsViewModel.Instance.License = new PhalcodeProduct() { UserName = "user", Status = "", CurrentPeriodStart = DateTime.Today - TimeSpan.FromDays(1), CurrentPeriodEnd = DateTime.MaxValue, Currency = "USD" };
+                //SettingsViewModel.Instance.License = new PhalcodeProduct() { UserName = "User", Status = "", CurrentPeriodStart = DateTime.Today - TimeSpan.FromDays(1), CurrentPeriodEnd = DateTime.MaxValue, Currency = "USD" };
                 //File.WriteAllText("license.txt", JsonSerializer.Serialize<PhalcodeProduct>(SettingsViewModel.Instance.License, new JsonSerializerOptions { WriteIndented = true }));
 
             }
@@ -329,7 +330,7 @@ namespace gamevault.Helper
 
         public async Task<bool> IsServerAvailable()
         {
-            if (SettingsViewModel.Instance.ServerUrl.IsNullOrEmpty())
+            if (String.IsNullOrEmpty(SettingsViewModel.Instance.ServerUrl))
                 return false;
 
             try
@@ -339,7 +340,8 @@ namespace gamevault.Helper
             }
             catch { }
             return false;
-=======
+        }
+
         private void InitOnlineTimer()
         {
             if (onlineTimer == null)
