@@ -1,5 +1,56 @@
 # GameVault App Changelog
 
+## 1.16.1
+Recommended Gamevault Server Version: `v14.1.0`
+### Changes
+
+- Added a setting to mount ISO instead of extracting
+- Bug fix: Custom Cloud Save config is not applied to 'find' action
+- Bug fix: Cloud Save Backup/Restore not working on windows username with space in it
+
+## 1.16.0
+Recommended Gamevault Server Version: `v14.1.0`
+### Changes
+
+- Added auto Cloud Save Redirects
+- Added support for custom Cloud Save Manifests
+- Setting to deactivate the primary cloud save manifest in order to use only the user-defined manifests
+- Library can now filter for Developers and Publishers
+- You can now uninstall community themes from the settings
+- Improved the game metadata search UI
+- Bug fix: Startup crash when gamevault tries to set the windows jumplist
+
+## 1.15.0
+Recommended Gamevault Server Version: `v14.0.0`
+### Changes
+
+- Cloud Saves (+)
+- Added retrieval and installation of community themes
+- Added Community Themes Repository link to the settings 
+- Bug fix: Youtube url not loading in gameview
+- Bug fix: Game window sometimes started in the background when launched via gamevault uri
+- Bug fix: Crash on saving user details
+- Bug fix: Removed all dotted keyboard focus lines
+- Bug fix: App protocol of the microsoft version won't start a install if a instance of gamevault is already running
+- Bug fix: The game executable selection was always empty if the ignore list had an empty string as an entry
+
+## 1.14.0
+Recommended Gamevault Server Version: `v13.1.2`
+### Changes
+
+- Sync the currently played game with the discord Presence API (+)
+- Sync installed Gamevault games with Steam shortcuts (+)
+- The popup window now also closes when you have uninstalled a setup game
+- Enhanced offline handling
+- Added a new Christmas theme (+).
+- Bug fix: Added increasing tick rate to download retry timer to avoid continuous spam
+- Bug fix: Media slider video was sometimes rendered on top of a popup
+- Bug fix: Crash on Media Slider navigation
+- Bug fix: Crash on create shortcut after installation
+- Bug fix: Prevent the message copy button from taking focus away from the current control
+- Bug fix: Animated profile pictures were still displayed when switching to a profile without a set profile picture
+- Bug fix: Improved Gif decoder
+
 ## 1.13.1
 Recommended Gamevault Server Version: `v13.1.0`
 ### Changes

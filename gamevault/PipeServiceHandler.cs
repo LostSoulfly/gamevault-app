@@ -313,15 +313,15 @@ namespace gamevault
             if (options == null)
                 return null;
 
-            if (options.Action != CommandOptions.ActionEnum.Show && options.Action != CommandOptions.ActionEnum.Start && !SettingsViewModel.Instance.License.IsActive())
+            if ((options.Action == CommandOptions.ActionEnum.Install || options.Action == CommandOptions.ActionEnum.Uninstall) && !SettingsViewModel.Instance.License.IsActive())
             {
                 try
                 {
-#if DEBUG
-                    string url = "https://test.phalco.de/products/gamevault-plus/checkout?hit_paywall=true";
-#else
                     string url = "https://phalco.de/products/gamevault-plus/checkout?hit_paywall=true";
-#endif
+                    if (SettingsViewModel.Instance.DevTargetPhalcodeTestBackend)
+                    {
+                        url = "https://test.phalco.de/products/gamevault-plus/checkout?hit_paywall=true";
+                    }
                     Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
                     return null;
                 }
@@ -454,12 +454,16 @@ namespace gamevault
         /// <returns>The game or null if not installed</returns>
         private async Task<Game?> GetInstalledGame(int id)
         {
-            if (!InstallViewModel.Instance.InstalledGames.Any())
+            Game? game = null;
+            await Dispatch(async () =>
             {
-                await MainWindowViewModel.Instance.Library.GetGameInstalls().RestoreInstalledGames();
-            }
-
-            return InstallViewModel.Instance.InstalledGames.Where(g => g.Key.ID == id).Select(g => g.Key).FirstOrDefault();
+                if (!InstallViewModel.Instance.InstalledGames.Any())
+                {
+                    await MainWindowViewModel.Instance.Library.GetGameInstalls().RestoreInstalledGames();
+                }
+                game = InstallViewModel.Instance.InstalledGames.Where(g => g.Key.ID == id).Select(g => g.Key).FirstOrDefault();
+            });
+            return game;
         }
 
         /// <summary>
@@ -513,13 +517,18 @@ namespace gamevault
                 return;
 
             // Ensure we're on the UI thread
-            await Dispatch(() =>
+            await Dispatch(async () =>
             {
+                if (App.Instance.MainWindow != null)
+                {
+                    App.Instance.MainWindow.Activate();
+                    await Task.Delay(500);
+                }
 
                 var gameViewUserControl = new UserControls.GameViewUserControl(game, LoginManager.Instance.IsLoggedIn());
                 // Set the correct UI regardless of if it's visible to let the user manage it
                 MainWindowViewModel.Instance.SetActiveControl(gameViewUserControl);
-                InstallUserControl.PlayGame(game.ID);
+                await InstallUserControl.PlayGame(game.ID);
             });
         }
 
@@ -619,10 +628,10 @@ namespace gamevault
         private async Task ExecuteJumpListCommand(int id)
         {
             // Ensure we're on the UI thread
-            await Dispatch(async() =>
+            await Dispatch(async () =>
             {
                 switch (id)
-                {                   
+                {
                     case 15:
                         {
                             await App.Instance.ExitApp();

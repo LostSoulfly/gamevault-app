@@ -28,15 +28,15 @@
                 <TextBlock Text="Settings" FontSize="35" Margin="20,0,0,0" Foreground="{DynamicResource MahApps.Brushes.ThemeForeground}"/>
             </Grid>
         </Border>
-        <TextBlock Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Bottom" Text="{Binding Version,StringFormat='{}V {0}'}" Margin="20,0,0,5"/>
+        <TextBlock Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Bottom" Text="{Binding Version,StringFormat='{}V {0}'}" Margin="20,0,0,5" Panel.ZIndex="1" MouseLeftButtonDown="DevMode_Click"/>
         <ScrollViewer Grid.Row="1" Margin="10" VerticalScrollBarVisibility="Auto">
-            <TabControl x:Name="uiTabControl" TabStripPlacement="Left" SelectionChanged="TabControl_SelectionChanged" FocusVisualStyle="{x:Null}">
+            <TabControl x:Name="uiTabControl" TabStripPlacement="Left" SelectionChanged="TabControl_SelectionChanged" >
                 <TabItem Header="Application">
                     <StackPanel Margin="30,0,0,0">
                         <StackPanel Margin="0,0,0,0">
                             <TextBlock Text="Server Settings" FontSize="20" FontWeight="Bold"/>
                             <settingsComponents:ServerUrlUserControl Margin="10,10,0,0" HorizontalAlignment="Left"/>
-                            
+
                         </StackPanel>
                         <StackPanel Margin="0,10,0,0">
                             <TextBlock Text="Startup" FontSize="20" FontWeight="Bold"/>
@@ -46,7 +46,8 @@
                         </StackPanel>
                         <StackPanel Margin="0,10,0,0">
                             <TextBlock Text="Theme" FontSize="20" FontWeight="Bold"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <TextBlock Text="Installed Themes" Margin="10,5,0,0" FontSize="14"/>
+                            <StackPanel Orientation="Horizontal" Margin="10,10,0,0">
                                 <ComboBox x:Name="uiCbTheme" ItemsSource="{Binding Themes}" Width="520" HorizontalAlignment="Left" SelectionChanged="Themes_SelectionChanged">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
@@ -77,7 +78,81 @@
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
+                                <Button Style="{StaticResource ButtonWrapper}" Height="25" Width="25" Margin="20,0,10,0" Cursor="Hand" ToolTip="Reload Theme List" Click="ReloadThemeList_Click">
+                                    <Grid  Style="{DynamicResource HoverEffect}" Background="Transparent">
+                                        <Path Data="{StaticResource IconReload}" Fill="{DynamicResource MahApps.Brushes.ThemeForeground}" Margin="0,0.6,0,0" RenderTransformOrigin="0.5,0.5">
+                                            <Path.RenderTransform>
+                                                <ScaleTransform ScaleX="1.51" ScaleY="1.51"/>
+                                            </Path.RenderTransform>
+                                        </Path>
+                                        <Grid.RenderTransform>
+                                            <ScaleTransform/>
+                                        </Grid.RenderTransform>
+                                    </Grid>
+                                </Button>
+                                <local:IconButton Text="Uninstall Theme" Kind="Danger" IsEnabled="{Binding IsCommunityThemeSelected}" FontSize="15" Icon="{StaticResource IconTrash}" IconMargin="0,0,5,2" Width="175" Margin="10,0,0,0" Click="UninstallTheme_Click"/>
                                 <local:IconButton Text="Open Theme Folder" FontSize="15" Icon="{StaticResource IconGameSettingsFolder}" IconMargin="0,0,5,2" Width="175" Margin="10,0,0,0" Click="OpenThemeFolder_Click"/>
+                            </StackPanel>
+                            <TextBlock Text="Community Themes" Margin="10,10,0,0" FontSize="14"/>
+                            <StackPanel Orientation="Horizontal" Margin="10,5,0,0">
+                                <Grid>
+                                    <ComboBox x:Name="uiCBCommunityThemes" ItemsSource="{Binding CommunityThemes}" Width="520" HorizontalAlignment="Left" DropDownOpened="CommunityThemes_DropDownOpened">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Width="480" ToolTip="{Binding Description}">
+                                                    <StackPanel Width="450" HorizontalAlignment="Left">
+                                                        <TextBlock Text="{Binding DisplayName}" FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding Description}" Margin="0,0,0,0" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding Author,StringFormat='{}Author: {0}'}" Margin="0,0,0,0" FontSize="10"/>
+                                                    </StackPanel>
+                                                    <Path Fill="{DynamicResource MahApps.Brushes.Accent}" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                        <Path.Style>
+                                                            <Style TargetType="Path">
+                                                                <Style.Triggers>
+                                                                    <MultiDataTrigger>
+                                                                        <MultiDataTrigger.Conditions>
+                                                                            <Condition Binding="{Binding IsPlus}" Value="True" />
+                                                                            <Condition Binding="{Binding DataContext.License, RelativeSource={RelativeSource AncestorType={x:Type ComboBox}}, Converter={StaticResource licenseConv}}" Value="False" />
+                                                                        </MultiDataTrigger.Conditions>
+                                                                        <MultiDataTrigger.Setters>
+                                                                            <Setter Property="Data" Value="{StaticResource IconLock}"/>
+                                                                        </MultiDataTrigger.Setters>
+                                                                    </MultiDataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Path.Style>
+                                                    </Path>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <TextBlock IsHitTestVisible="False" FontSize="22" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value=""/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding CommunityThemes}" Value="{x:Null}">
+                                                        <Setter Property="Text" Value="Click to Load"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                                <Button Style="{StaticResource ButtonWrapper}" Height="25" Width="25" Margin="20,0,10,0" Cursor="Hand" ToolTip="Reload Theme List" Click="ReloadCommunityThemeList_Click">
+                                    <Grid  Style="{DynamicResource HoverEffect}" Background="Transparent">
+                                        <Path Data="{StaticResource IconReload}" Fill="{DynamicResource MahApps.Brushes.ThemeForeground}" Margin="0,0.6,0,0" RenderTransformOrigin="0.5,0.5">
+                                            <Path.RenderTransform>
+                                                <ScaleTransform ScaleX="1.51" ScaleY="1.51"/>
+                                            </Path.RenderTransform>
+                                        </Path>
+                                        <Grid.RenderTransform>
+                                            <ScaleTransform/>
+                                        </Grid.RenderTransform>
+                                    </Grid>
+                                </Button>
+                                <local:IconButton Text="Install Theme" Height="55" FontSize="15" Icon="{StaticResource IconGameSettingsInstallation}" IconMargin="0,0,10,0" IconScale="1" Width="175" Margin="10,0,0,0" Click="InstallCommunityTheme_Click"/>
+                                <local:IconButton Text="Open Repository" Height="55" FontSize="15" Icon="{StaticResource IconGameSettingsGithub}" IconMargin="-10,0,10,0" IconScale="1" Width="175" Margin="10,0,0,0" Click="OpenCommunityThemeRepository_Click"/>
                             </StackPanel>
                         </StackPanel>
                         <StackPanel Margin="0,15,0,0">
@@ -107,6 +182,7 @@
                                     <local:IconButton Text="Save" FontSize="15" Icon="{StaticResource IconGameSettingsSave}" IconMargin="0,0,5,2" Width="80" Height="30" Margin="0,5,0,0" HorizontalAlignment="Left" Click="ExtractionPasswordSave_Click"/>
                                 </StackPanel>
                             </GroupBox>
+                            <mah:ToggleSwitch Header="Mount ISO instead of extracting (Must be unmounted manually)" Margin="10,10,0,0" IsOn="{Binding MountIso}"/>
                         </StackPanel>
                         <StackPanel Margin="0,10,0,0">
                             <TextBlock Text="Installation" FontSize="20" FontWeight="Bold"/>
@@ -146,8 +222,8 @@
                                 <Grid>
                                     <TextBox mah:ControlsHelper.CornerRadius="5" Text="{Binding IgnoreList,Converter={StaticResource stringToArrayConv},ConverterParameter=','}" mah:TextBoxHelper.Watermark="Edit ignorelist (seperate entries by comma)" Margin="0,0,120,0" TextWrapping="Wrap"/>
                                     <StackPanel>
-                                        <local:IconButton Text="Reset" FontSize="15" Icon="{DynamicResource IconReload}" IconMargin="0,0,5,2" IsEnabled="{Binding BackgroundImageChanged}" Width="115" Height="33" HorizontalAlignment="Right" Click="IgnoredExecutablesReset_Click"/>
-                                        <local:IconButton Text="Save" FontSize="15" Icon="{DynamicResource IconGameSettingsSave}" IconMargin="0,0,5,2" IsEnabled="{Binding BackgroundImageChanged}" Margin="0,5,0,0" Width="115" Height="33" HorizontalAlignment="Right" Click="IgnoredExecutablesSave_Click"/>
+                                        <local:IconButton Text="Reset" FontSize="15" Icon="{DynamicResource IconReload}" IconMargin="0,0,5,2" Width="115" Height="33" HorizontalAlignment="Right" Click="IgnoredExecutablesReset_Click"/>
+                                        <local:IconButton Text="Save" FontSize="15" Icon="{DynamicResource IconGameSettingsSave}" IconMargin="0,0,5,2" Margin="0,5,0,0" Width="115" Height="33" HorizontalAlignment="Right" Click="IgnoredExecutablesSave_Click"/>
                                     </StackPanel>
                                 </Grid>
                             </GroupBox>
@@ -354,6 +430,135 @@
                                 </Style>
                             </local:IconButton.Style>
                         </local:IconButton>
+                        <!--Features-->
+                        <StackPanel>
+                            <StackPanel>
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="IsEnabled" Value="False"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding License.UserName,Converter={StaticResource licenseConv}}" Value="True">
+                                                <Setter Property="IsEnabled" Value="True"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <StackPanel Margin="0,30,0,0">
+                                    <TextBlock Text="Features" FontSize="20" FontWeight="Bold"/>
+                                    <StackPanel Orientation="Horizontal" Margin="10,10,0,0">
+                                        <Rectangle Fill="{DynamicResource MahApps.Brushes.Accent}" Width="2"/>
+                                        <StackPanel Margin="10,0,0,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="{StaticResource IconGameSettingsSteam}" Fill="{DynamicResource MahApps.Brushes.ThemeForeground}" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                                                    <Path.RenderTransform>
+                                                        <ScaleTransform ScaleX="1.1" ScaleY="1.1"/>
+                                                    </Path.RenderTransform>
+                                                </Path>
+                                                <TextBlock FontSize="20" FontWeight="Bold" Margin="5,0,0,0">
+                                                    <Hyperlink NavigateUri="https://gamevau.lt/docs/gamevault-plus/integrations/steam" RequestNavigate="Hyperlink_RequestNavigate" TextDecorations="None">Steam</Hyperlink>
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <TextBlock Text="GameVault+ offers seamless integration with Steam through the Steam Sync Integration. When enabled, all your installed &#x0a;games are automatically synced to your Steam Library and appear as Non-Steam Games. Launching these games via Steam will &#x0a;route them through GameVault, ensuring all your custom launch options are preserved." FontSize="15"/>
+                                            <mah:ToggleSwitch Header="Sync (You have to restart the steam client to see the changes)" Margin="0,10,0,0" IsOn="{Binding SyncSteamShortcuts}" Toggled="SyncSteamShortcuts_Toggled"/>
+                                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                <local:IconButton Text="Restore Backup" Kind="Danger" FontSize="15" Icon="{DynamicResource IconReload}" IconMargin="0,0,5,2" Width="135" Height="30" HorizontalAlignment="Right" Click="RestoreSteamShortcutBackup_Click"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="10,20,0,0">
+                                    <Rectangle Fill="{DynamicResource MahApps.Brushes.Accent}" Width="2"/>
+                                    <StackPanel Margin="10,0,0,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Data="{StaticResource IconGameSettingsDiscord}" Fill="{DynamicResource MahApps.Brushes.ThemeForeground}" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                                                <Path.RenderTransform>
+                                                    <ScaleTransform ScaleX="1.1" ScaleY="1.1"/>
+                                                </Path.RenderTransform>
+                                            </Path>
+                                            <TextBlock FontSize="20" FontWeight="Bold" Margin="5,0,0,0">
+                                                <Hyperlink NavigateUri="https://gamevau.lt/docs/gamevault-plus/integrations/discord" RequestNavigate="Hyperlink_RequestNavigate" TextDecorations="None">Discord</Hyperlink>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <TextBlock Text="When enabled, your currently played game will be synced with the Discord Presence. This means that all your discord friends can see what you are currently playing" FontSize="15"/>
+                                        <mah:ToggleSwitch Header="Sync" Margin="0,10,0,0" IsOn="{Binding SyncDiscordPresence}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="10,20,0,0">
+                                    <Rectangle Fill="{DynamicResource MahApps.Brushes.Accent}" Width="2"/>
+                                    <StackPanel Margin="10,0,0,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Data="{StaticResource IconCloudSave}" Fill="{DynamicResource MahApps.Brushes.ThemeForeground}" VerticalAlignment="Center" RenderTransformOrigin="0.3,0.0">
+                                                <Path.RenderTransform>
+                                                    <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                                                </Path.RenderTransform>
+                                            </Path>
+                                            <TextBlock FontSize="20" FontWeight="Bold" Margin="5,0,0,0">
+                                                 <Hyperlink NavigateUri="http://gamevau.lt/docs/gamevault-plus/cloud-saves" RequestNavigate="Hyperlink_RequestNavigate" TextDecorations="None">Cloud Saves</Hyperlink>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <TextBlock Text="Automatically backs up and restores your latest savefiles via your GameVault Server, ensuring seamless transitions between installations and devices. " FontSize="15"/>
+                                        <TextBlock Text="Requires GameVault Server with savefiles feature enabled." FontSize="12" FontStyle="Italic"/>
+                                        <mah:ToggleSwitch Margin="0,5,0,0" IsOn="{Binding CloudSaves}"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Custom Ludusavi Manifests" Margin="0,2,0,2" FontSize="15"/>
+                                            <CheckBox Content="Use Primary Manifest" IsChecked="{Binding UsePrimaryCloudSaveManifest}" Margin="15,0,0,0" ToolTip="Disable primary Ludusavi manifest to only use the custom ones"/>
+                                        </StackPanel>
+                                        <ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto" Width="550" HorizontalAlignment="Left">
+                                            <ItemsControl ItemsSource="{Binding CustomCloudSaveManifests}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBox Text="{Binding Path=.Uri, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" mah:TextBoxHelper.Watermark="File path or URL" mah:ControlsHelper.CornerRadius="5" Width="500" Height="20"/>
+                                                            <Button Style="{StaticResource ButtonWrapper}" Height="30" Width="30" Cursor="Hand" Click="RemoveCustomCloudSaveManifest_Click">
+                                                                <Grid Style="{DynamicResource HoverEffect}"  Background="Transparent"  RenderTransformOrigin="0.5,0.5">
+                                                                    <Path Data="m11.25 4.75l-6.5 6.5m0-6.5l6.5 6.5" Stroke="IndianRed" StrokeThickness="2">
+                                                                        <Path.RenderTransform>
+                                                                            <ScaleTransform ScaleX="2" ScaleY="2"/>
+                                                                        </Path.RenderTransform>
+                                                                    </Path>
+                                                                    <Grid.RenderTransform>
+                                                                        <ScaleTransform/>
+                                                                    </Grid.RenderTransform>
+                                                                </Grid>
+                                                            </Button>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                            <local:IconButton Icon="{StaticResource IconAddTag}" Text="Add" FontSize="15" IconMargin="0,0,5,2" Width="100" Height="30" Margin="0,0,10,0" Click="AddCustomCloudSaveManifest_Click"/>
+                                            <local:IconButton Icon="{StaticResource IconGameSettingsSave}" Text="Save" FontSize="15" IconMargin="0,0,5,2" Width="100" Height="30" Click="SaveCustomCloudSaveManifests_Click"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="10,20,0,0">
+                                <Rectangle Fill="{DynamicResource MahApps.Brushes.Accent}" Width="2"/>
+                                <StackPanel Margin="10,0,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="{StaticResource IconGameSettingsPlaynite}" Fill="{DynamicResource MahApps.Brushes.ThemeForeground}" VerticalAlignment="Center" RenderTransformOrigin="1,1">
+                                            <Path.RenderTransform>
+                                                <ScaleTransform ScaleX="1.1" ScaleY="1.1"/>
+                                            </Path.RenderTransform>
+                                        </Path>
+                                        <TextBlock Text="Playnite" FontSize="20" FontWeight="Bold" Margin="5,0,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock Text="GameVault+ integrates seamlessly with Playnite using our Playnite Library Extension" FontSize="15"/>
+                                    <TextBlock FontSize="15">
+         <Hyperlink NavigateUri="https://playnite.link/addons.html#GameVault_fab8be77-18ab-4e6c-ad3d-89097b492d74" RequestNavigate="Hyperlink_RequestNavigate">Download Playnite Extension</Hyperlink>
+                                    </TextBlock>
+                                    <TextBlock FontSize="15">
+         <Hyperlink NavigateUri="https://gamevau.lt/docs/gamevault-plus/integrations/playnite/" RequestNavigate="Hyperlink_RequestNavigate">Setup Guide</Hyperlink>
+                                    </TextBlock>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
                     </StackPanel>
                 </TabItem>
                 <TabItem  Header="About">
@@ -400,6 +605,23 @@
                                 <Hyperlink NavigateUri="https://www.igdb.com" RequestNavigate="Hyperlink_RequestNavigate">https://www.igdb.com</Hyperlink>
                             </TextBlock>
                         </StackPanel>
+                    </StackPanel>
+                </TabItem>
+                <TabItem Header="Developer">
+                    <TabItem.Style>
+                        <Style TargetType="TabItem" BasedOn="{StaticResource MahApps.Styles.TabItem}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DevModeEnabled}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TabItem.Style>
+                    <StackPanel Margin="30,0,0,0">
+                        <TextBlock Text="Developer Settings" FontSize="20" FontWeight="Bold"/>
+                        <TextBlock Text="You may need to restart the client for the changes to take effect" Margin="0,5,0,0"/>
+                        <mah:ToggleSwitch Header="Target Phalcode TEST backend" IsOn="{Binding DevTargetPhalcodeTestBackend}" Margin="5,15,0,0"/>
                     </StackPanel>
                 </TabItem>
             </TabControl>

@@ -1,8 +1,12 @@
 ﻿using gamevault.Helper;
+using gamevault.Helper.Integrations;
 using gamevault.Models;
+using gamevault.UserControls;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -49,8 +53,20 @@ namespace gamevault.ViewModels
         private string[] ignoreList { get; set; }
         private User m_RegistrationUser = new User() { Avatar = new Media(), Background = new Media() };
         private PhalcodeProduct license { get; set; }
-        private List<ThemeItem> themes { get; set; }
+        private ObservableCollection<ThemeItem> themes { get; set; }
+        private ObservableCollection<ThemeItem> communityThemes { get; set; }
         private bool showMappedTitle { get; set; }
+        private bool syncSteamShortcuts { get; set; }
+        private bool syncDiscordPresence { get; set; }
+        private bool cloudSaves { get; set; }
+        private bool isCommunityThemeSelected { get; set; }
+        private bool usePrimaryCloudSaveManifest { get; set; }
+        private ObservableCollection<LudusaviManifestEntry> customCloudSaveManifests;
+        private bool mountIso { get; set; }
+        //DevMode
+        private bool devModeEnabled { get; set; }
+        private bool devTargetPhalcodeTestBackend { get; set; }
+        //
 
         #endregion
 
@@ -62,7 +78,7 @@ namespace gamevault.ViewModels
 
             string showMappedTitleString = Preferences.Get(AppConfigKey.ShowMappedTitle, AppFilePath.UserFile);
             showMappedTitle = showMappedTitleString == "1" || showMappedTitleString == "";
-
+            //Setting the private members to avoid writing to the user config file over and over again
             m_BackgroundStart = (Preferences.Get(AppConfigKey.BackgroundStart, AppFilePath.UserFile) == "1"); OnPropertyChanged(nameof(BackgroundStart));
             m_AutoExtract = (Preferences.Get(AppConfigKey.AutoExtract, AppFilePath.UserFile) == "1"); OnPropertyChanged(nameof(AutoExtract));
             autoDeletePortableGameFiles = Preferences.Get(AppConfigKey.AutoDeletePortable, AppFilePath.UserFile) == "1"; OnPropertyChanged(nameof(AutoDeletePortableGameFiles));
@@ -70,6 +86,10 @@ namespace gamevault.ViewModels
 
             string analyticsPreference = Preferences.Get(AppConfigKey.SendAnonymousAnalytics, AppFilePath.UserFile);
             sendAnonymousAnalytics = (analyticsPreference == "" || analyticsPreference == "1"); OnPropertyChanged(nameof(SendAnonymousAnalytics));
+
+            syncSteamShortcuts = Preferences.Get(AppConfigKey.SyncSteamShortcuts, AppFilePath.UserFile) == "1"; OnPropertyChanged(nameof(SyncSteamShortcuts));
+            syncDiscordPresence = Preferences.Get(AppConfigKey.SyncDiscordPresence, AppFilePath.UserFile) == "1"; OnPropertyChanged(nameof(SyncDiscordPresence));
+            cloudSaves = Preferences.Get(AppConfigKey.CloudSaves, AppFilePath.UserFile) == "1"; OnPropertyChanged(nameof(CloudSaves));
 
             string autoInstallPortableStr = Preferences.Get(AppConfigKey.AutoInstallPortable, AppFilePath.UserFile);
             if (string.IsNullOrWhiteSpace(autoInstallPortableStr) || autoInstallPortableStr == "1")
@@ -96,6 +116,19 @@ namespace gamevault.ViewModels
                 DownloadLimit = 0;
                 DownloadLimitUIValue = 0;
             }
+            string usePrimaryCloudSaveManifestString = Preferences.Get(AppConfigKey.UsePrimaryCloudSaveManifest, AppFilePath.UserFile);
+            usePrimaryCloudSaveManifest = usePrimaryCloudSaveManifestString == "1" || usePrimaryCloudSaveManifestString == "";
+
+            string customCloudSaveManifestsString = Preferences.Get(AppConfigKey.CustomCloudSaveManifests, AppFilePath.UserFile);
+            customCloudSaveManifests = string.IsNullOrWhiteSpace(customCloudSaveManifestsString) ? null! : new ObservableCollection<LudusaviManifestEntry>(customCloudSaveManifestsString.Split(';').Select(part => new LudusaviManifestEntry { Uri = part }).ToList());
+
+            string mountIsoString = Preferences.Get(AppConfigKey.MountIso, AppFilePath.UserFile);
+            mountIso = mountIsoString == "1";
+
+            //DevMode
+            devModeEnabled = Preferences.Get(AppConfigKey.DevModeEnabled, AppFilePath.UserFile) == "1"; OnPropertyChanged(nameof(DevModeEnabled));
+            devTargetPhalcodeTestBackend = Preferences.Get(AppConfigKey.DevTargetPhalcodeTestBackend, AppFilePath.UserFile) == "1"; OnPropertyChanged(nameof(DevTargetPhalcodeTestBackend));
+            //            
         }
         public async Task InitIgnoreList()
         {
@@ -106,8 +139,12 @@ namespace gamevault.ViewModels
                     if (!File.Exists(AppFilePath.IgnoreList))
                     {
                         string response = WebHelper.GetRequest(@$"{SettingsViewModel.Instance.ServerUrl}/api/progresses/ignorefile");
-                        IgnoreList = JsonSerializer.Deserialize<string[]>(response);
-                        Preferences.Set("IL", response.Replace("\n", ""), AppFilePath.IgnoreList);
+                        string[] ignoreList = JsonSerializer.Deserialize<string[]>(response);
+                        if (ignoreList != null || ignoreList?.Length > 0)
+                        {
+                            IgnoreList = ignoreList.Where(s => !string.IsNullOrEmpty(s)).ToArray(); //Make sure server ignore list don't contain empty strings, because this will exclude any file which is compared to the ignore list
+                            Preferences.Set("IL", response.Replace("\n", ""), AppFilePath.IgnoreList);
+                        }
                     }
                     else
                     {
@@ -288,15 +325,52 @@ namespace gamevault.ViewModels
             }
             set { showMappedTitle = value; Preferences.Set(AppConfigKey.ShowMappedTitle, showMappedTitle ? "1" : "0", AppFilePath.UserFile); OnPropertyChanged(); }
         }
+        public bool SyncSteamShortcuts
+        {
+            get
+            {
+                return syncSteamShortcuts;
+            }
+            set { syncSteamShortcuts = value; Preferences.Set(AppConfigKey.SyncSteamShortcuts, syncSteamShortcuts ? "1" : "0", AppFilePath.UserFile); OnPropertyChanged(); }
+        }
+        public bool SyncDiscordPresence
+        {
+            get
+            {
+                return syncDiscordPresence;
+            }
+            set { syncDiscordPresence = value; Preferences.Set(AppConfigKey.SyncDiscordPresence, syncDiscordPresence ? "1" : "0", AppFilePath.UserFile); OnPropertyChanged(); }
+        }
+        public bool CloudSaves
+        {
+            get
+            {
+                return cloudSaves;
+            }
+            set { cloudSaves = value; Preferences.Set(AppConfigKey.CloudSaves, cloudSaves ? "1" : "0", AppFilePath.UserFile); OnPropertyChanged(); }
+        }
+        public bool IsCommunityThemeSelected
+        {
+            get
+            {
+                return isCommunityThemeSelected;
+            }
+            set { isCommunityThemeSelected = value; OnPropertyChanged(); }
+        }
         public User RegistrationUser
         {
             get { return m_RegistrationUser; }
             set { m_RegistrationUser = value; OnPropertyChanged(); }
         }
-        public List<ThemeItem> Themes
+        public ObservableCollection<ThemeItem> Themes
         {
             get { return themes; }
             set { themes = value; OnPropertyChanged(); }
+        }
+        public ObservableCollection<ThemeItem> CommunityThemes
+        {
+            get { return communityThemes; }
+            set { communityThemes = value; OnPropertyChanged(); }
         }
         public PhalcodeProduct License
         {
@@ -306,6 +380,35 @@ namespace gamevault.ViewModels
                 return license;
             }
             set { license = value; OnPropertyChanged(); }
+        }
+
+        public bool UsePrimaryCloudSaveManifest
+        {
+            get
+            {
+                return usePrimaryCloudSaveManifest;
+            }
+            set { usePrimaryCloudSaveManifest = value; Preferences.Set(AppConfigKey.UsePrimaryCloudSaveManifest, usePrimaryCloudSaveManifest ? "1" : "0", AppFilePath.UserFile); OnPropertyChanged(); }
+        }
+        public ObservableCollection<LudusaviManifestEntry> CustomCloudSaveManifests
+        {
+            get
+            {
+                if (customCloudSaveManifests == null)
+                {
+                    customCloudSaveManifests = new ObservableCollection<LudusaviManifestEntry>();
+                }
+                return customCloudSaveManifests;
+            }
+            set { customCloudSaveManifests = value; OnPropertyChanged(); }
+        }
+        public bool MountIso
+        {
+            get
+            {
+                return mountIso;
+            }
+            set { mountIso = value; Preferences.Set(AppConfigKey.MountIso, mountIso ? "1" : "0", AppFilePath.UserFile); OnPropertyChanged(); }
         }
         public System.Windows.Forms.DialogResult SelectDownloadPath()
         {
@@ -350,7 +453,24 @@ namespace gamevault.ViewModels
                 return Assembly.GetExecutingAssembly().GetName().Version.ToString();
             }
         }
-
+        //DevMode
+        public bool DevModeEnabled
+        {
+            get
+            {
+                return devModeEnabled;
+            }
+            set { devModeEnabled = value; Preferences.Set(AppConfigKey.DevModeEnabled, devModeEnabled ? "1" : "0", AppFilePath.UserFile); OnPropertyChanged(); }
+        }
+        public bool DevTargetPhalcodeTestBackend
+        {
+            get
+            {
+                return devTargetPhalcodeTestBackend;
+            }
+            set { devTargetPhalcodeTestBackend = value; Preferences.Set(AppConfigKey.DevTargetPhalcodeTestBackend, devTargetPhalcodeTestBackend ? "1" : "0", AppFilePath.UserFile); OnPropertyChanged(); }
+        }
+        //
     }
     public class ThemeItem
     {

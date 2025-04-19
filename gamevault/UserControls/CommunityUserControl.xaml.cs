@@ -51,6 +51,11 @@ namespace gamevault.UserControls
             string result = await WebHelper.GetRequestAsync(@$"{SettingsViewModel.Instance.ServerUrl}/api/users");
             var users = JsonSerializer.Deserialize<User[]>(result);
             users = BringCurrentUserToTop(users);
+            //Log server user count only on the first time its set
+            if (ViewModel.Users == null)
+            {
+                AnalyticsHelper.Instance.SendCustomEvent(CustomAnalyticsEventKeys.SERVER_USER_COUNT, new { usercount = users?.Length.ToString() });
+            }
             ViewModel.Users = users;
             if (uiSelectUser.SelectedIndex == -1 && ViewModel.CurrentShownUser == null)
             {
@@ -210,7 +215,7 @@ namespace gamevault.UserControls
         {
             if (!LoginManager.Instance.IsLoggedIn())
             {
-                MainWindowViewModel.Instance.AppBarText = "You are not logged in";
+                MainWindowViewModel.Instance.AppBarText = "You are not logged in or offline";
                 return;
             }
             if (uiBtnReloadUser.IsEnabled == false || (e.GetType() == typeof(KeyEventArgs) && ((KeyEventArgs)e).Key != Key.F5))
@@ -249,7 +254,7 @@ namespace gamevault.UserControls
                     "", MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings() { AffirmativeButtonText = "Yes", NegativeButtonText = "No", AnimateHide = false });
                 if (result == MessageDialogResult.Affirmative)
                 {
-                    WebHelper.Delete(@$"{SettingsViewModel.Instance.ServerUrl}/api/progresses/{dataContext.ID}");
+                    WebHelper.Delete(@$"{SettingsViewModel.Instance.ServerUrl}/api/progresses/user/{ViewModel?.CurrentShownUser?.ID}/game/{dataContext?.Game.ID}");
                     //ToDo: Dirty but i dont want to use ObservableCollection only for this one action
                     List<Progress> copy = ViewModel.UserProgresses;
                     copy.Remove(dataContext);

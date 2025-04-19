@@ -1,5 +1,6 @@
 ﻿using gamevault.Converter;
 using gamevault.Helper;
+using gamevault.Helper.Integrations;
 using gamevault.Models;
 using gamevault.ViewModels;
 using LiveChartsCore.Measure;
@@ -23,6 +24,7 @@ using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Navigation;
+using Windows.Gaming.Input;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
@@ -137,34 +139,6 @@ namespace gamevault.UserControls
             gameID = game.ID;
             this.DataContext = ViewModel;
         }
-        private async void ReloadGameView_Click(object sender, System.Windows.Input.KeyEventArgs e)
-        {
-            if (e.Key != Key.F5)
-                return;
-
-            await ReloadGameView();
-        }
-        private async Task ReloadGameView()
-        {
-            this.IsEnabled = false;
-            try
-            {
-                string result = await WebHelper.GetRequestAsync(@$"{SettingsViewModel.Instance.ServerUrl}/api/games/{gameID}");
-                ViewModel.Game = JsonSerializer.Deserialize<Game>(result);
-                ViewModel.UserProgresses = ViewModel.Game.Progresses.Where(p => p.User.ID != LoginManager.Instance.GetCurrentUser().ID).ToArray();
-                ViewModel.CurrentUserProgress = ViewModel.Game.Progresses.FirstOrDefault(progress => progress.User.ID == LoginManager.Instance.GetCurrentUser()?.ID) ?? new Progress { MinutesPlayed = 0, State = State.UNPLAYED.ToString() };
-            }
-            catch (Exception ex) { }
-            ViewModel.IsInstalled = IsGameInstalled(ViewModel.Game);
-            ViewModel.IsDownloaded = IsGameDownloaded(ViewModel.Game);           
-            PrepareMarkdownElements();
-            this.IsEnabled = true;
-        }
-        public void RefreshGame(Game game)
-        {
-            ViewModel.Game = game;
-            PrepareMarkdownElements();
-        }
         private async void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
             this.Focus();
@@ -184,8 +158,17 @@ namespace gamevault.UserControls
                     catch (Exception ex) { }
                 }
                 ViewModel.IsInstalled = IsGameInstalled(ViewModel.Game);
-                ViewModel.IsDownloaded = IsGameDownloaded(ViewModel.Game);               
+                ViewModel.IsDownloaded = IsGameDownloaded(ViewModel.Game);
                 PrepareMarkdownElements();
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        SaveGameHelper.Instance.PrepareConfigFile("", Path.Combine(AppFilePath.CloudSaveConfigDir, "config.yaml"));
+                        ViewModel.CloudSaveMatchTitle = await SaveGameHelper.Instance.SearchForLudusaviGameTitle(ViewModel?.Game?.Metadata?.Title);
+                    }
+                    catch { }
+                });
                 //MediaSlider
                 try
                 {
@@ -201,6 +184,35 @@ namespace gamevault.UserControls
                 uiMediaSlider.Dispose();
             }
         }
+        private async void ReloadGameView_Click(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key != Key.F5)
+                return;
+
+            await ReloadGameView();
+        }
+        private async Task ReloadGameView()
+        {
+            this.IsEnabled = false;
+            try
+            {
+                string result = await WebHelper.GetRequestAsync(@$"{SettingsViewModel.Instance.ServerUrl}/api/games/{gameID}");
+                ViewModel.Game = JsonSerializer.Deserialize<Game>(result);
+                ViewModel.UserProgresses = ViewModel.Game.Progresses.Where(p => p.User.ID != LoginManager.Instance.GetCurrentUser().ID).ToArray();
+                ViewModel.CurrentUserProgress = ViewModel.Game.Progresses.FirstOrDefault(progress => progress.User.ID == LoginManager.Instance.GetCurrentUser()?.ID) ?? new Progress { MinutesPlayed = 0, State = State.UNPLAYED.ToString() };
+            }
+            catch (Exception ex) { }
+            ViewModel.IsInstalled = IsGameInstalled(ViewModel.Game);
+            ViewModel.IsDownloaded = IsGameDownloaded(ViewModel.Game);
+            PrepareMarkdownElements();
+            this.IsEnabled = true;
+        }
+        public void RefreshGame(Game game)
+        {
+            ViewModel.Game = game;
+            PrepareMarkdownElements();
+        }
+
         private bool IsGameInstalled(Game? game)
         {
             if (game == null)
@@ -228,16 +240,17 @@ namespace gamevault.UserControls
         {
             MainWindowViewModel.Instance.UndoActiveControl();
         }
-        private void GamePlay_Click(object sender, RoutedEventArgs e)
+        private async void GamePlay_Click(object sender, RoutedEventArgs e)
         {
-            InstallUserControl.PlayGame(ViewModel.Game.ID);
+            ((FrameworkElement)sender).IsEnabled = false;
+            await InstallUserControl.PlayGame(ViewModel.Game.ID);
+            ((FrameworkElement)sender).IsEnabled = true;
         }
         private void GameSettings_Click(object sender, RoutedEventArgs e)
         {
             if (ViewModel.Game == null)
                 return;
 
-            uiMediaSlider.UnloadMediaSlider();
             MainWindowViewModel.Instance.OpenPopup(new GameSettingsUserControl(ViewModel.Game) { Width = 1200, Height = 800, Margin = new Thickness(50) });
         }
         private async void GameDownload_Click(object sender, RoutedEventArgs e)
@@ -349,6 +362,28 @@ namespace gamevault.UserControls
             }
             catch { }
         }
+        private void Developer_Clicked(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                DeveloperMetadata data = (DeveloperMetadata)((FrameworkElement)sender).DataContext;
+                MainWindowViewModel.Instance.Library.ClearAllFilters();
+                MainWindowViewModel.Instance.Library.uiFilterDeveloperSelector.SetEntries(new Pill[] { new Pill() { ID = (int)data.ID!, Name = data.Name, ProviderDataId = data.ProviderDataId } });
+                MainWindowViewModel.Instance.SetActiveControl(MainControl.Library);
+            }
+            catch { }
+        }
+        private void Publisher_Clicked(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                PublisherMetadata data = (PublisherMetadata)((FrameworkElement)sender).DataContext;
+                MainWindowViewModel.Instance.Library.ClearAllFilters();
+                MainWindowViewModel.Instance.Library.uiFilterPublisherSelector.SetEntries(new Pill[] { new Pill() { ID = (int)data.ID!, Name = data.Name, ProviderDataId = data.ProviderDataId } });
+                MainWindowViewModel.Instance.SetActiveControl(MainControl.Library);
+            }
+            catch { }
+        }
         private void GameType_Clicked(object sender, RoutedEventArgs e)
         {
             try
@@ -368,6 +403,54 @@ namespace gamevault.UserControls
                 MainWindowViewModel.Instance.AppBarText = "Sharelink copied to clipboard";
             }
             catch { }
+        }
+        private async void BackupCloudSaves_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!SettingsViewModel.Instance.License.IsActive())
+                {
+                    MainWindowViewModel.Instance.SetActiveControl(MainControl.Settings);
+                    MainWindowViewModel.Instance.Settings.SetTabIndex(4);
+                    return;
+                }
+                if (!LoginManager.Instance.IsLoggedIn())
+                {
+                    MainWindowViewModel.Instance.AppBarText = CloudSaveStatus.Offline;
+                    return;
+                }
+                MainWindowViewModel.Instance.AppBarText = "Uploading Savegame to the Server...";
+                ((FrameworkElement)sender).IsEnabled = false;
+                string status = await SaveGameHelper.Instance.BackupSaveGame(ViewModel!.Game!.ID);
+                MainWindowViewModel.Instance.AppBarText = status;
+            }
+            catch
+            {
+                MainWindowViewModel.Instance.AppBarText = CloudSaveStatus.BackupFailed;
+            }
+            ((FrameworkElement)sender).IsEnabled = true;
+        }
+        private async void RestoreCloudSaves_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!SettingsViewModel.Instance.License.IsActive())
+                {
+                    MainWindowViewModel.Instance.SetActiveControl(MainControl.Settings);
+                    MainWindowViewModel.Instance.Settings.SetTabIndex(4);
+                    return;
+                }
+                MainWindowViewModel.Instance.AppBarText = $"Syncing cloud save...";
+                ((FrameworkElement)sender).IsEnabled = false;
+                string installationDir = InstallViewModel.Instance.InstalledGames.First(g => g.Key.ID == ViewModel!.Game!.ID).Value;
+                string status = await SaveGameHelper.Instance.RestoreBackup(ViewModel!.Game!.ID, installationDir);
+                MainWindowViewModel.Instance.AppBarText = status;
+            }
+            catch
+            {
+                MainWindowViewModel.Instance.AppBarText = CloudSaveStatus.RestoreFailed;
+            }
+            ((FrameworkElement)sender).IsEnabled = true;
         }
         #region Markdown        
         private void OpenHyperlink(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
@@ -400,8 +483,8 @@ namespace gamevault.UserControls
             }
             catch { }
         }
-        #endregion
 
+        #endregion
 
     }
 }

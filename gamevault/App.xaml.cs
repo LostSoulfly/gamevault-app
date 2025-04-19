@@ -58,7 +58,7 @@ namespace gamevault
             base.OnStartup(e);
             AnalyticsHelper.Instance.InitHeartBeat();
             AnalyticsHelper.Instance.RegisterGlobalEvents();
-            AnalyticsHelper.Instance.SendCustomEvent("APP_INITIALIZED", AnalyticsHelper.Instance.GetSysInfo());
+            AnalyticsHelper.Instance.SendCustomEvent(CustomAnalyticsEventKeys.APP_INITIALIZED, AnalyticsHelper.Instance.GetSysInfo());          
         }
 
         private async void Application_Startup(object sender, StartupEventArgs e)
@@ -85,6 +85,9 @@ namespace gamevault
 #endif
             await LoginManager.Instance.StartupLogin();
             await LoginManager.Instance.PhalcodeLogin(true);
+
+            AnalyticsHelper.Instance.SendCustomEvent(CustomAnalyticsEventKeys.USER_SETTINGS, AnalyticsHelper.Instance.PrepareSettingsForAnalytics());
+
             m_gameTimeTracker = new GameTimeTracker();
             await m_gameTimeTracker.Start();
 
@@ -120,7 +123,7 @@ namespace gamevault
 
         private void AppDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            ProcessShepherd.KillAllChildProcesses();
+            ProcessShepherd.Instance.KillAllChildProcesses();
 #if DEBUG
             e.Handled = false;
 #else
@@ -184,24 +187,28 @@ namespace gamevault
         }
         public void SetJumpListGames()
         {
-            var lastGames = InstallViewModel.Instance.InstalledGames.Take(5).ToArray();
-            foreach (var game in lastGames)
+            try
             {
-                if (!jumpList.JumpItems.OfType<JumpTask>().Any(jt => jt.Title == game.Key.Title))
+                var lastGames = InstallViewModel.Instance.InstalledGames.Take(5).ToArray();
+                foreach (var game in lastGames)
                 {
-                    JumpTask gameTask = new JumpTask()
+                    if (!jumpList.JumpItems.OfType<JumpTask>().Any(jt => jt.Title == game.Key.Title))
                     {
-                        Title = game.Key.Title,
-                        CustomCategory = "Last Played",
-                        ApplicationPath = Process.GetCurrentProcess().MainModule.FileName,
-                        IconResourcePath = Preferences.Get(AppConfigKey.Executable, $"{game.Value}\\gamevault-exec"),
-                        Arguments = $"start --gameid={game.Key.ID}"
-                    };
-                    jumpList.JumpItems.Add(gameTask);
+                        JumpTask gameTask = new JumpTask()
+                        {
+                            Title = game.Key.Title,
+                            CustomCategory = "Last Played",
+                            ApplicationPath = Process.GetCurrentProcess()?.MainModule?.FileName,
+                            IconResourcePath = Preferences.Get(AppConfigKey.Executable, $"{game.Value}\\gamevault-exec"),
+                            Arguments = $"start --gameid={game.Key.ID}"
+                        };
+                        jumpList.JumpItems.Add(gameTask);
+                    }
                 }
-            }
 
-            jumpList.Apply();
+                jumpList.Apply();
+            }
+            catch { }
         }
         private void RestoreTheme()
         {
@@ -210,7 +217,7 @@ namespace gamevault
                 string currentThemeString = Preferences.Get(AppConfigKey.Theme, AppFilePath.UserFile, true);
                 if (currentThemeString != string.Empty)
                 {
-                    ThemeItem currentTheme = JsonSerializer.Deserialize<ThemeItem>(currentThemeString);
+                    ThemeItem currentTheme = JsonSerializer.Deserialize<ThemeItem>(currentThemeString)!;
 
                     if (App.Current.Resources.MergedDictionaries[0].Source.OriginalString != currentTheme.Path)
                     {
@@ -277,7 +284,7 @@ namespace gamevault
         private void ShutdownApp()
         {
             ShowToastMessage = false;
-            ProcessShepherd.KillAllChildProcesses();
+            ProcessShepherd.Instance.KillAllChildProcesses();
             if (m_Icon != null)
             {
                 m_Icon.Icon.Dispose();
@@ -298,6 +305,10 @@ namespace gamevault
             if (!Directory.Exists(AppFilePath.ThemesLoadDir))
             {
                 Directory.CreateDirectory(AppFilePath.ThemesLoadDir);
+            }
+            if (!Directory.Exists(AppFilePath.CloudSaveConfigDir))
+            {
+                Directory.CreateDirectory(AppFilePath.CloudSaveConfigDir);
             }
         }
         public bool IsWindowActiveAndControlInFocus(MainControl control)
