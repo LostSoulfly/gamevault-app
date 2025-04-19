@@ -291,6 +291,10 @@ namespace gamevault.Helper.Integrations
                 process.StartInfo.ArgumentList.Add("--api");
                 process.EnableRaisingEvents = true;
 
+
+                if (process.StartInfo.ArgumentList.Contains(null))
+                    return "";
+
                 List<string> output = new List<string>();
 
                 process.ErrorDataReceived += (sender, e) =>
