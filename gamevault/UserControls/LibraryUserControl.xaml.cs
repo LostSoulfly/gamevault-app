@@ -67,7 +67,7 @@ namespace gamevault.UserControls
         }
         public async Task LoadLibrary()
         {
-            await Search();
+            await Search(true);
         }
         public void ShowLibraryError()
         {
@@ -94,11 +94,11 @@ namespace gamevault.UserControls
             inputTimer?.Stop();
             await Search();
         }
-        private async Task Search()
+        private async Task Search(bool startHidden = false)
         {
             if (!LoginManager.Instance.IsLoggedIn())
             {
-                MainWindowViewModel.Instance.AppBarText = "You are not logged in or offline";
+                if (!startHidden) MainWindowViewModel.Instance.AppBarText = "You are not logged in";
                 return;
             }
             if (!uiExpanderGameCards.IsExpanded)

@@ -58,7 +58,7 @@ namespace gamevault.Windows
                     using (HttpClient httpClient = new HttpClient())
                     {
                         httpClient.DefaultRequestHeaders.Add("User-Agent", "Other");
-                        var response = await httpClient.GetStringAsync("https://api.github.com/repos/Phalcode/gamevault-app/releases");
+                        var response = await httpClient.GetStringAsync("https://api.github.com/repos/LostSoulfly/gamevault-app/releases");
                         dynamic obj = JsonNode.Parse(response);
                         string version = (string)obj[0]["tag_name"];
                         if (Convert.ToInt32(version.Replace(".", "")) > Convert.ToInt32(SettingsViewModel.Instance.Version.Replace(".", "")))

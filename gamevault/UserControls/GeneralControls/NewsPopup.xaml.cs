@@ -37,7 +37,7 @@ namespace gamevault.UserControls
             this.Focus();
             try
             {
-                string gameVaultNews = await WebHelper.DownloadFileContentAsync("https://gamevau.lt/news.md");
+                string gameVaultNews = await WebHelper.DownloadFileContentAsync("https://raw.githubusercontent.com/LostSoulfly/gamevault-app/refs/heads/master/README.md");
                 uiGameVaultNews.Markdown = gameVaultNews;
                 string serverNews = await WebHelper.GetRequestAsync($"{SettingsViewModel.Instance.ServerUrl}/api/config/news");
                 uiServerNews.Markdown = serverNews;
